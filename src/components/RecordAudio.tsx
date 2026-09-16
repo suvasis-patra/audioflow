@@ -1,10 +1,13 @@
 import { Button } from "@/components/ui/button";
+import { cn } from "cn";
 import { useRef, useState } from "react";
 
 type TMicrophoneStatus = "connected" | "disconnected" | "connecting" | "denied";
 
 const RecordAudio = () => {
   const mediaRef = useRef<MediaStream | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const [microphone, setMicrophone] =
     useState<TMicrophoneStatus>("disconnected");
 
@@ -13,6 +16,10 @@ const RecordAudio = () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRef.current = stream;
+      const audioCtx = new AudioContext();
+      audioCtxRef.current = audioCtx;
+      const source = audioCtx.createMediaStreamSource(stream);
+      sourceNodeRef.current = source;
       setMicrophone("connected");
       console.log(stream);
     } catch (error) {
@@ -25,7 +32,11 @@ const RecordAudio = () => {
     mediaRef.current?.getTracks().forEach((track) => {
       track.stop();
     });
+    sourceNodeRef.current?.disconnect();
+    audioCtxRef.current?.close();
     mediaRef.current = null;
+    audioCtxRef.current = null;
+    sourceNodeRef.current = null;
     setMicrophone("disconnected");
   }
 
@@ -34,7 +45,12 @@ const RecordAudio = () => {
       <div className="w-full max-w-md rounded-2xl border bg-card p-8 shadow-sm">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-cyan-500/10">
-            <div className="h-5 w-5 rounded-full bg-cyan-500" />
+            <div
+              className={cn(
+                "h-5 w-5 rounded-full bg-cyan-500",
+                `${microphone === "connected" ? "animate-pulse" : ""}`,
+              )}
+            />
           </div>
 
           <h2 className="text-2xl font-semibold tracking-tight">
